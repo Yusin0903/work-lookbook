@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { EditWorkForm } from "./EditWorkForm";
 import { DeleteMediaButton } from "./DeleteMediaButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditWorkPage({
   params,
 }: {

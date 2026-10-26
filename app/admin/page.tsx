@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { logout } from "@/lib/actions";
 import { DeleteWorkButton } from "./DeleteWorkButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const works = await prisma.work.findMany({
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
