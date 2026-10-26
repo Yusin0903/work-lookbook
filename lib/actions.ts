@@ -13,6 +13,27 @@ function extensionFor(mimeType: string) {
   return mimeType.split("/")[1]?.replace("quicktime", "mov") ?? "bin";
 }
 
+// R2's free tier is 10GB; default to a bit under that so normal usage never
+// crosses into billed storage by accident.
+const DEFAULT_STORAGE_LIMIT_BYTES = 9 * 1024 ** 3;
+
+function storageLimitBytes() {
+  const parsed = Number(process.env.R2_STORAGE_LIMIT_BYTES);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_STORAGE_LIMIT_BYTES;
+}
+
+async function checkStorageLimit(incomingBytes: number) {
+  const { _sum } = await prisma.media.aggregate({ _sum: { size: true } });
+  const used = _sum.size ?? 0;
+  const limit = storageLimitBytes();
+  if (used + incomingBytes > limit) {
+    const usedGb = (used / 1024 ** 3).toFixed(2);
+    const limitGb = (limit / 1024 ** 3).toFixed(2);
+    return `儲存空間即將超過上限(目前已用 ${usedGb}GB,上限 ${limitGb}GB),請先刪除一些舊媒體再上傳。`;
+  }
+  return null;
+}
+
 export async function login(formData: FormData) {
   const username = formData.get("username")?.toString() ?? "";
   const password = formData.get("password")?.toString() ?? "";
@@ -55,6 +76,11 @@ export async function createWork(formData: FormData) {
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
 
+  const limitError = await checkStorageLimit(files.reduce((sum, f) => sum + f.size, 0));
+  if (limitError) {
+    return { error: limitError };
+  }
+
   const work = await prisma.work.create({
     data: { title, description },
   });
@@ -66,7 +92,7 @@ export async function createWork(formData: FormData) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const { key, url } = await uploadToR2(buffer, file.type, extensionFor(file.type));
     await prisma.media.create({
-      data: { workId: work.id, type, key, url, order: order++ },
+      data: { workId: work.id, type, key, url, size: file.size, order: order++ },
     });
   }
 
@@ -92,6 +118,11 @@ export async function updateWork(workId: string, formData: FormData) {
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length > 0) {
+    const limitError = await checkStorageLimit(files.reduce((sum, f) => sum + f.size, 0));
+    if (limitError) {
+      return { error: limitError };
+    }
+
     const existingCount = await prisma.media.count({ where: { workId } });
     let order = existingCount;
     for (const file of files) {
@@ -100,7 +131,7 @@ export async function updateWork(workId: string, formData: FormData) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const { key, url } = await uploadToR2(buffer, file.type, extensionFor(file.type));
       await prisma.media.create({
-        data: { workId, type, key, url, order: order++ },
+        data: { workId, type, key, url, size: file.size, order: order++ },
       });
     }
   }

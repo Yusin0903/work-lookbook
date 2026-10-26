@@ -31,11 +31,13 @@ A lookbook site for a 3D-printing portfolio. Public gallery for clients and frie
 
 1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/) → R2 → create a bucket (e.g. `lookbook`).
 2. Enable Public Access in the bucket settings to get a public URL (`R2_PUBLIC_URL`), or attach a custom domain.
-3. R2 → Manage API tokens → create an Access Key with read/write permissions to get `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`.
+3. R2 → Manage API tokens → create an Access Key scoped to just this bucket, with "Object Read & Write" permission (not an account-wide Admin token), to get `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`. Scoping it narrowly limits the blast radius if the key ever leaks.
 4. The Account ID is in the right sidebar of the Cloudflare dashboard; use it for `R2_ACCOUNT_ID`.
 5. Put these four values plus `R2_BUCKET` into `.env` (local) or Railway's environment variables (production).
 
 R2's free tier (10GB storage + 1 million Class A operations/month, with no egress fees) is enough for photos and videos.
+
+R2 itself has no hard storage cap, only usage alerts, so the app enforces its own ceiling: before accepting an upload, it sums the size of everything already stored and rejects the upload if it would push the total past `R2_STORAGE_LIMIT_BYTES` (defaults to 9GiB, just under the free tier). This protects against normal usage accidentally filling the bucket through the site; it does not protect against a leaked API key being used to write to R2 directly, bypassing the app entirely — that's what scoping the token narrowly (above) and Cloudflare's usage alerts are for.
 
 ## Automated tests
 

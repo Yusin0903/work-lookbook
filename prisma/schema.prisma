@@ -27,6 +27,7 @@ model Media {
   type      MediaType
   key       String
   url       String
+  size      Int      @default(0)
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
