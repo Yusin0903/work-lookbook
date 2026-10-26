@@ -1,0 +1,9 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lookbook
+      POSTGRES_PASSWORD: lookbook
+      POSTGRES_DB: lookbook_test
+    ports:
+      - "55433:5432"

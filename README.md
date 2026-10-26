@@ -1,61 +1,73 @@
 # Lookbook
 
-3D 列印作品集網站。公開展示頁給客戶/朋友瀏覽,簡易管理後台上傳照片與影片。
+A lookbook site for a 3D-printing portfolio. Public gallery for clients and friends to browse, with a simple admin backend for uploading photos and videos.
 
-## 技術棧
+## Stack
 
-- Next.js 16(App Router, Server Actions)+ TypeScript + Tailwind CSS
+- Next.js 16 (App Router, Server Actions) + TypeScript + Tailwind CSS
 - PostgreSQL + Prisma ORM
-- Cloudflare R2(S3 相容物件儲存)存放照片/影片
-- iron-session 做管理後台的登入驗證
+- Cloudflare R2 (S3-compatible object storage) for photos/videos
+- iron-session for admin login
 
-## 本機開發
+## Local development
 
-1. 啟動本機 PostgreSQL(或填入任何 PostgreSQL 連線字串到 `.env`):
+1. Start a local PostgreSQL (or put any PostgreSQL connection string in `.env`):
    ```bash
    docker run -d --name lookbook-postgres -e POSTGRES_USER=lookbook -e POSTGRES_PASSWORD=lookbook -e POSTGRES_DB=lookbook -p 55432:5432 postgres:16-alpine
    ```
-2. 複製 `.env.example` 為 `.env`,填入 R2 設定與後台帳密(見下方「設定 Cloudflare R2」)。
-3. 安裝套件並跑資料庫遷移:
+2. Copy `.env.example` to `.env` and fill in the R2 settings and admin credentials (see "Setting up Cloudflare R2" below).
+3. Install dependencies and run the database migration:
    ```bash
    npm install
    npx prisma migrate deploy
    ```
-4. 啟動開發伺服器:
+4. Start the dev server:
    ```bash
    npm run dev
    ```
-5. 前台:http://localhost:3000 ,後台:http://localhost:3000/admin
+5. Public site: http://localhost:3000, admin: http://localhost:3000/admin
 
-## 設定 Cloudflare R2
+## Setting up Cloudflare R2
 
-1. 登入 [Cloudflare dashboard](https://dash.cloudflare.com/) → R2 → 建立一個 bucket(例如 `lookbook`)。
-2. Bucket 設定裡啟用 Public Access,取得公開存取網址(`R2_PUBLIC_URL`),或掛上自訂網域。
-3. R2 → 管理 API 權杖 → 建立一組有讀寫權限的 Access Key,取得 `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`。
-4. Account ID 在 Cloudflare dashboard 右側欄可以找到,填入 `R2_ACCOUNT_ID`。
-5. 把這四個值連同 `R2_BUCKET` 填進 `.env`(本機)或 Railway 的環境變數(正式環境)。
+1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/) → R2 → create a bucket (e.g. `lookbook`).
+2. Enable Public Access in the bucket settings to get a public URL (`R2_PUBLIC_URL`), or attach a custom domain.
+3. R2 → Manage API tokens → create an Access Key with read/write permissions to get `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`.
+4. The Account ID is in the right sidebar of the Cloudflare dashboard; use it for `R2_ACCOUNT_ID`.
+5. Put these four values plus `R2_BUCKET` into `.env` (local) or Railway's environment variables (production).
 
-R2 前 10GB 儲存空間 + 每月 100 萬次 Class A 操作是免費額度,且沒有流出流量費,適合存放照片與影片。
+R2's free tier (10GB storage + 1 million Class A operations/month, with no egress fees) is enough for photos and videos.
 
-## 部署到 Railway
+## Automated tests
 
-1. 在 Railway 專案裡新增一個 PostgreSQL 服務,Railway 會自動產生 `DATABASE_URL`。
-2. 新增這個 repo 作為另一個服務,在服務的環境變數裡:
-   - 把 PostgreSQL 服務的 `DATABASE_URL` 參照進來(Railway 可以用 `${{Postgres.DATABASE_URL}}` 這種參照語法)
-   - 填入 `R2_ACCOUNT_ID`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET`、`R2_PUBLIC_URL`
-   - 填入 `ADMIN_USERNAME`、`ADMIN_PASSWORD`(自己的後台帳密)
-   - 填入 `SESSION_SECRET`(至少 32 字元的隨機字串,例如 `openssl rand -base64 32`)
-3. Build 指令用預設的 `npm run build`(Railway 會自動偵測 Next.js),啟動指令用 `npm run start`。
-4. 第一次部署後,到 Railway 的 shell 或用 `railway run` 執行一次 `npx prisma migrate deploy`,把資料表建到正式資料庫。
-5. 媒體檔案都存在 R2,不佔用 Railway 的檔案空間,所以 Railway 這端只需要跑網站程式和存取資料庫的基本運算資源,Hobby 方案的額度通常就夠用。
+The project runs Playwright end-to-end tests (login, upload, publish/hide, delete) against a disposable test PostgreSQL, with a local S3-compatible stand-in (`s3rver`) standing in for R2:
 
-## 後台使用
+```bash
+docker compose -f docker-compose.test.yml up -d   # start the dedicated test database (port 55433)
+npm run test:e2e
+```
 
-前往 `/admin` 登入,登入後可以：
+Before each run, the test database is reset to a clean schema (`prisma migrate reset`); this never touches the local dev database in `.env`. GitHub Actions (`.github/workflows/ci.yml`) runs this full suite on every push and PR.
 
-- 新增作品(標題、描述、上傳多張照片/影片)
-- 編輯作品(改標題描述、新增媒體、切換「公開顯示」)
-- 刪除作品(連同 R2 上的媒體檔案一併刪除)
-- 刪除單一媒體檔案
+## Deploying to Railway
 
-未登入時造訪 `/admin` 任何頁面都會導回登入頁。前台首頁只顯示「公開顯示」的作品。
+1. Push this repo to GitHub, then in your Railway project use "Deploy from GitHub repo" to add a service from it, and enable Railway's auto-deploy (by default, a push to the connected branch or a PR merged into it triggers a redeploy).
+2. Add a PostgreSQL service to the Railway project; Railway generates `DATABASE_URL` automatically.
+3. On the web service's environment variables:
+   - Reference the Postgres service's `DATABASE_URL` (Railway supports reference syntax like `${{Postgres.DATABASE_URL}}`)
+   - Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`
+   - Set `ADMIN_USERNAME`, `ADMIN_PASSWORD` (your own admin credentials)
+   - Set `SESSION_SECRET` (a random string at least 32 characters, e.g. `openssl rand -base64 32`)
+4. Use the default build command `npm run build` (Railway auto-detects Next.js) and start command `npm run start`.
+5. After the first deploy, run `npx prisma migrate deploy` once via Railway's shell or `railway run` to create the tables in production. Run it again after every new migration — Railway does not run migrations automatically.
+6. Media files live in R2, so they don't consume Railway's disk; the Railway side only needs to run the app and talk to the database, which the Hobby plan's included usage normally covers.
+
+## Using the admin backend
+
+Log in at `/admin`. Once logged in you can:
+
+- Create a work (title, description, upload multiple photos/videos)
+- Edit a work (change title/description, add media, toggle "published")
+- Delete a work (also deletes its media from R2)
+- Delete an individual media item
+
+Visiting any `/admin` page while logged out redirects to the login page. The public homepage only shows works marked "published".
