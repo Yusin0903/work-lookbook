@@ -72,3 +72,5 @@ Log in at `/admin`. Once logged in you can:
 - Delete an individual media item
 
 Visiting any `/admin` page while logged out redirects to the login page. The public homepage only shows works marked "published".
+
+Uploaded photos (JPEG/PNG/WebP, not GIF) are automatically resized to a 2000px max dimension and re-encoded as WebP at quality 85 before being stored — the original file you uploaded isn't kept. This is a deliberate tradeoff: true lossless recompression barely shrinks an already-lossy JPEG, while this visually-lossless-for-display conversion typically cuts file size 50-80%, which matters for staying under R2's free tier. Animated GIFs are stored as-is so their animation isn't lost. Videos are stored as-is for now; compressing them would need `ffmpeg` as a system dependency and adds real CPU cost on upload, so it's deferred until it's actually needed.
