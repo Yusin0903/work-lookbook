@@ -20,27 +20,29 @@ export default async function WorkPage({
   }
 
   return (
-    <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12">
-      <Link href="/" className="text-sm text-neutral-500 hover:underline">
+    <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 sm:py-16">
+      <Link href="/" className="text-sm text-muted hover:text-accent">
         ← 回作品集
       </Link>
 
-      <h1 className="text-2xl font-semibold tracking-tight mt-4">{work.title}</h1>
+      <h1 className="font-serif italic text-4xl sm:text-5xl tracking-tight text-foreground mt-6">
+        {work.title}
+      </h1>
       {work.description && (
-        <p className="text-neutral-600 mt-2 whitespace-pre-line">{work.description}</p>
+        <p className="text-muted mt-3 whitespace-pre-line max-w-xl">{work.description}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
         {work.media.map((item) =>
           item.type === "IMAGE" ? (
             <img
               key={item.id}
               src={item.url}
               alt={work.title}
-              className="w-full rounded-lg"
+              className="w-full rounded-sm"
             />
           ) : (
-            <video key={item.id} src={item.url} controls className="w-full rounded-lg" />
+            <video key={item.id} src={item.url} controls className="w-full rounded-sm" />
           )
         )}
       </div>

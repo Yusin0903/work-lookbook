@@ -5,7 +5,7 @@ export interface GalleryCover {
 
 export function GalleryCard({ title, cover }: { title: string; cover: GalleryCover | null }) {
   return (
-    <div className="aspect-square overflow-hidden rounded-xl bg-neutral-100 shadow-sm ring-1 ring-black/5">
+    <div className="aspect-square overflow-hidden rounded-sm bg-surface shadow-sm ring-1 ring-black/5">
       {cover?.type === "IMAGE" ? (
         <img
           src={cover.url}
@@ -24,5 +24,5 @@ export function GalleryCard({ title, cover }: { title: string; cover: GalleryCov
 }
 
 export function GalleryCaption({ title }: { title: string }) {
-  return <p className="mt-3 font-serif text-base sm:text-lg tracking-wide text-neutral-800">{title}</p>;
+  return <p className="mt-3 font-serif text-base sm:text-lg tracking-wide text-foreground">{title}</p>;
 }

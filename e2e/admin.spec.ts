@@ -21,7 +21,9 @@ test.describe.serial("admin manages a work end to end", () => {
 
   test("published work and its cover image appear on the public homepage", async ({ page }) => {
     await page.goto("/");
-    const link = page.getByRole("link", { name: WORK_TITLE });
+    // The single published work doubles as the homepage's featured hero and
+    // appears in its grid section too, so there are two matching links.
+    const link = page.getByRole("link", { name: WORK_TITLE }).first();
     await expect(link).toBeVisible();
 
     const cover = link.locator("img");
@@ -36,7 +38,7 @@ test.describe.serial("admin manages a work end to end", () => {
 
   test("work detail page shows the description and media", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: WORK_TITLE }).click();
+    await page.getByRole("link", { name: WORK_TITLE }).first().click();
     await page.waitForURL("**/work/*");
 
     await expect(page.locator("h1")).toHaveText(WORK_TITLE);
