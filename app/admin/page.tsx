@@ -43,7 +43,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">作品管理</h1>
         <div className="flex gap-3">

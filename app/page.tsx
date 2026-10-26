@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { GalleryCard, GalleryCaption, type GalleryCover } from "@/app/_gallery/GalleryCard";
+import { GallerySection } from "@/app/_gallery/GallerySection";
 
 export const dynamic = "force-dynamic";
 
 interface WorkCard {
   id: string;
   title: string;
-  cover: { url: string; type: "IMAGE" | "VIDEO" } | null;
+  cover: GalleryCover | null;
 }
 
-function resolveCover(media: { url: string; type: string; isCover: boolean }[]) {
+function resolveCover(media: { url: string; type: string; isCover: boolean }[]): GalleryCover | null {
   const cover = media.find((m) => m.isCover) ?? media[0];
   return cover ? { url: cover.url, type: cover.type as "IMAGE" | "VIDEO" } : null;
 }
@@ -42,44 +44,25 @@ export default async function HomePage() {
   ].filter((section) => section.works.length > 0);
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
-      <header className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Lookbook</h1>
-        <p className="text-sm text-neutral-500 mt-1">3D 列印作品集</p>
+    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-16 sm:py-20">
+      <header className="mb-16 sm:mb-20 text-center">
+        <h1 className="font-serif text-4xl sm:text-6xl tracking-tight text-neutral-900">Lookbook</h1>
+        <p className="mt-3 font-serif italic text-neutral-500 text-lg">3D 列印作品集</p>
       </header>
 
       {sections.length === 0 ? (
-        <p className="text-neutral-500">目前還沒有作品。</p>
+        <p className="text-neutral-500 text-center">目前還沒有作品。</p>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-16 sm:space-y-20">
           {sections.map((section) => (
-            <section key={section.key}>
-              {section.label && (
-                <h2 className="text-lg font-medium tracking-tight mb-4">{section.label}</h2>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {section.works.map((work) => (
-                  <Link key={work.id} href={`/work/${work.id}`} className="group block">
-                    <div className="aspect-square overflow-hidden rounded-lg bg-neutral-100">
-                      {work.cover?.type === "IMAGE" ? (
-                        <img
-                          src={work.cover.url}
-                          alt={work.title}
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : work.cover?.type === "VIDEO" ? (
-                        <video
-                          src={work.cover.url}
-                          muted
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : null}
-                    </div>
-                    <p className="mt-2 text-sm font-medium">{work.title}</p>
-                  </Link>
-                ))}
-              </div>
-            </section>
+            <GallerySection key={section.key} label={section.label}>
+              {section.works.map((work) => (
+                <Link key={work.id} href={`/work/${work.id}`} className="group block" data-work-id={work.id}>
+                  <GalleryCard title={work.title} cover={work.cover} />
+                  <GalleryCaption title={work.title} />
+                </Link>
+              ))}
+            </GallerySection>
           ))}
         </div>
       )}

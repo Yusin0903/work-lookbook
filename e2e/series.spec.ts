@@ -18,18 +18,21 @@ async function createWork(page: Page, title: string, seriesName?: string) {
   await page.waitForURL("**/admin");
 }
 
-async function dragRowAfter(page: Page, fromLabel: string, overLabel: string) {
-  const fromHandle = page.getByRole("listitem").filter({ hasText: fromLabel }).getByLabel("拖曳調整順序");
-  const overRow = page.getByRole("listitem").filter({ hasText: overLabel });
+async function dragTileOnto(page: Page, fromLabel: string, overLabel: string) {
+  const fromHandle = page.locator("[data-work-id]").filter({ hasText: fromLabel }).getByLabel("拖曳調整順序");
+  const overTile = page.locator("[data-work-id]").filter({ hasText: overLabel });
 
   const fromBox = await fromHandle.boundingBox();
-  const overBox = await overRow.boundingBox();
+  const overBox = await overTile.boundingBox();
   if (!fromBox || !overBox) throw new Error("could not measure drag elements");
+
+  const targetX = overBox.x + overBox.width / 2;
+  const targetY = overBox.y + overBox.height / 2;
 
   await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(overBox.x + overBox.width / 2, overBox.y + overBox.height - 4, { steps: 10 });
-  await page.mouse.move(overBox.x + overBox.width / 2, overBox.y + overBox.height - 4, { steps: 2 });
+  await page.mouse.move(targetX, targetY, { steps: 10 });
+  await page.mouse.move(targetX, targetY, { steps: 2 });
   await page.mouse.up();
 }
 
@@ -66,7 +69,7 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
     await loginAsAdmin(page);
     await page.goto("/admin");
     await page
-      .getByRole("listitem")
+      .locator("[data-work-id]")
       .filter({ hasText: WORK_A })
       .getByRole("link", { name: "編輯" })
       .click();
@@ -78,7 +81,7 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
     await page.waitForURL("**/admin");
 
     await page
-      .getByRole("listitem")
+      .locator("[data-work-id]")
       .filter({ hasText: WORK_A })
       .getByRole("link", { name: "編輯" })
       .click();
@@ -100,19 +103,19 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
     // Both works default to order 0, so the initial order is whichever tiebreak
     // (createdAt desc) applies — don't assume which one starts first, just
     // drag the first row to swap with the second and check it actually swapped.
-    const rowsBefore = page.getByRole("listitem").filter({ hasText: /系列作品/ });
+    const rowsBefore = page.locator("[data-work-id]").filter({ hasText: /系列作品/ });
     await expect(rowsBefore).toHaveCount(2);
     const firstTitleBefore = (await rowsBefore.nth(0).textContent())!;
     const secondTitleBefore = (await rowsBefore.nth(1).textContent())!;
     const firstLabel = firstTitleBefore.includes(WORK_A) ? WORK_A : WORK_B;
     const secondLabel = secondTitleBefore.includes(WORK_A) ? WORK_A : WORK_B;
 
-    await dragRowAfter(page, firstLabel, secondLabel);
+    await dragTileOnto(page, firstLabel, secondLabel);
 
     await page.waitForTimeout(500); // let the reorderWorks server action settle
     await page.reload();
 
-    const rowsAfter = page.getByRole("listitem").filter({ hasText: /系列作品/ });
+    const rowsAfter = page.locator("[data-work-id]").filter({ hasText: /系列作品/ });
     await expect(rowsAfter.nth(0)).toContainText(secondLabel);
     await expect(rowsAfter.nth(1)).toContainText(firstLabel);
   });
@@ -123,7 +126,7 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
 
     page.on("dialog", (dialog) => dialog.accept());
     for (const title of [WORK_A, WORK_B]) {
-      await page.getByRole("listitem").filter({ hasText: title }).getByRole("button", { name: "刪除" }).click();
+      await page.locator("[data-work-id]").filter({ hasText: title }).getByRole("button", { name: "刪除" }).click();
       await expect(page.getByText(title)).toHaveCount(0, { timeout: 10_000 });
     }
 

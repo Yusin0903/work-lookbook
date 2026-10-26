@@ -10,16 +10,18 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { reorderWorks } from "@/lib/actions";
+import { GalleryCard, type GalleryCover } from "@/app/_gallery/GalleryCard";
+import { GallerySection } from "@/app/_gallery/GallerySection";
 import { DeleteWorkButton } from "./DeleteWorkButton";
 
 export interface WorkItem {
   id: string;
   title: string;
   published: boolean;
-  cover: { url: string; type: "IMAGE" | "VIDEO" } | null;
+  cover: GalleryCover | null;
 }
 
 export interface WorkGroup {
@@ -66,33 +68,30 @@ export function WorkList({ groups: initialGroups }: { groups: WorkGroup[] }) {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-16">
       {groups.map(
         (group) =>
           group.works.length > 0 && (
-            <section key={group.key}>
-              <h2 className="text-sm font-medium text-neutral-500 mb-3">{group.label}</h2>
+            <GallerySection key={group.key} label={group.label}>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={(event) => handleDragEnd(group.key, event)}
               >
-                <SortableContext items={group.works.map((w) => w.id)} strategy={verticalListSortingStrategy}>
-                  <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200">
-                    {group.works.map((work) => (
-                      <SortableWorkRow key={work.id} work={work} />
-                    ))}
-                  </ul>
+                <SortableContext items={group.works.map((w) => w.id)} strategy={rectSortingStrategy}>
+                  {group.works.map((work) => (
+                    <SortableWorkTile key={work.id} work={work} />
+                  ))}
                 </SortableContext>
               </DndContext>
-            </section>
+            </GallerySection>
           )
       )}
     </div>
   );
 }
 
-function SortableWorkRow({ work }: { work: WorkItem }) {
+function SortableWorkTile({ work }: { work: WorkItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: work.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -101,31 +100,33 @@ function SortableWorkRow({ work }: { work: WorkItem }) {
   };
 
   return (
-    <li ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 bg-white">
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none text-neutral-400 px-1 shrink-0"
-        aria-label="拖曳調整順序"
-      >
-        ⠿
-      </button>
-      <div className="h-16 w-16 rounded-md bg-neutral-100 overflow-hidden shrink-0">
-        {work.cover?.type === "IMAGE" ? (
-          <img src={work.cover.url} alt="" className="h-full w-full object-cover" />
-        ) : work.cover?.type === "VIDEO" ? (
-          <video src={work.cover.url} muted className="h-full w-full object-cover" />
-        ) : null}
+    <div ref={setNodeRef} style={style} data-work-id={work.id}>
+      <div className="relative">
+        <GalleryCard title={work.title} cover={work.cover} />
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="拖曳調整順序"
+          className="absolute top-2 left-2 h-7 w-7 rounded-full bg-white/90 text-neutral-600 shadow-sm cursor-grab touch-none flex items-center justify-center"
+        >
+          ⠿
+        </button>
+        {!work.published && (
+          <span className="absolute top-2 right-2 rounded bg-neutral-900/80 text-white text-xs px-1.5 py-0.5">
+            隱藏
+          </span>
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{work.title}</p>
-        <p className="text-xs text-neutral-500">{work.published ? "公開" : "隱藏"}</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="font-serif text-base truncate">{work.title}</p>
+        <div className="flex items-center gap-3 shrink-0">
+          <Link href={`/admin/${work.id}/edit`} className="text-sm text-neutral-600 hover:underline">
+            編輯
+          </Link>
+          <DeleteWorkButton workId={work.id} />
+        </div>
       </div>
-      <Link href={`/admin/${work.id}/edit`} className="text-sm text-neutral-600 hover:underline shrink-0">
-        編輯
-      </Link>
-      <DeleteWorkButton workId={work.id} />
-    </li>
+    </div>
   );
 }
