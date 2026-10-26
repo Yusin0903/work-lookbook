@@ -57,9 +57,8 @@ Before each run, the test database is reset to a clean schema (`prisma migrate r
    - Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`
    - Set `ADMIN_USERNAME`, `ADMIN_PASSWORD` (your own admin credentials)
    - Set `SESSION_SECRET` (a random string at least 32 characters, e.g. `openssl rand -base64 32`)
-4. Use the default build command `npm run build` (Railway auto-detects Next.js) and start command `npm run start`.
-5. After the first deploy, run `npx prisma migrate deploy` once via Railway's shell or `railway run` to create the tables in production. Run it again after every new migration — Railway does not run migrations automatically.
-6. Media files live in R2, so they don't consume Railway's disk; the Railway side only needs to run the app and talk to the database, which the Hobby plan's included usage normally covers.
+4. Build and deploy commands come from `railway.json` in this repo: build uses Nixpacks' default (`npm run build`), and before every deploy Railway runs `npx prisma migrate deploy` automatically (the `preDeployCommand`) before starting `npm run start`. This applies any new migrations on every push/merge, so there's no manual migration step. If Railway doesn't pick up `railway.json` for some reason, set the same pre-deploy command manually under the service's Settings → Deploy.
+5. Media files live in R2, so they don't consume Railway's disk; the Railway side only needs to run the app and talk to the database, which the Hobby plan's included usage normally covers.
 
 ## Using the admin backend
 
