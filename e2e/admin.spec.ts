@@ -30,6 +30,8 @@ test.describe.serial("admin manages a work end to end", () => {
 
     const response = await page.request.get(src!);
     expect(response.status()).toBe(200);
+    expect(src).toMatch(/\.webp$/);
+    expect(response.headers()["content-type"]).toBe("image/webp");
   });
 
   test("work detail page shows the description and media", async ({ page }) => {

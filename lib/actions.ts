@@ -5,13 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { uploadToR2, deleteFromR2, r2Configured } from "@/lib/r2";
-
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
-
-function extensionFor(mimeType: string) {
-  return mimeType.split("/")[1]?.replace("quicktime", "mov") ?? "bin";
-}
+import { prepareMedia } from "@/lib/media";
 
 // R2's free tier is 10GB; default to a bit under that so normal usage never
 // crosses into billed storage by accident.
@@ -75,8 +69,9 @@ export async function createWork(formData: FormData) {
   }
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
+  const prepared = await prepareMedia(files);
 
-  const limitError = await checkStorageLimit(files.reduce((sum, f) => sum + f.size, 0));
+  const limitError = await checkStorageLimit(prepared.reduce((sum, m) => sum + m.size, 0));
   if (limitError) {
     return { error: limitError };
   }
@@ -86,13 +81,10 @@ export async function createWork(formData: FormData) {
   });
 
   let order = 0;
-  for (const file of files) {
-    const type = IMAGE_TYPES.has(file.type) ? "IMAGE" : VIDEO_TYPES.has(file.type) ? "VIDEO" : null;
-    if (!type) continue;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { key, url } = await uploadToR2(buffer, file.type, extensionFor(file.type));
+  for (const media of prepared) {
+    const { key, url } = await uploadToR2(media.buffer, media.contentType, media.extension);
     await prisma.media.create({
-      data: { workId: work.id, type, key, url, size: file.size, order: order++ },
+      data: { workId: work.id, type: media.type, key, url, size: media.size, order: order++ },
     });
   }
 
@@ -118,20 +110,19 @@ export async function updateWork(workId: string, formData: FormData) {
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length > 0) {
-    const limitError = await checkStorageLimit(files.reduce((sum, f) => sum + f.size, 0));
+    const prepared = await prepareMedia(files);
+
+    const limitError = await checkStorageLimit(prepared.reduce((sum, m) => sum + m.size, 0));
     if (limitError) {
       return { error: limitError };
     }
 
     const existingCount = await prisma.media.count({ where: { workId } });
     let order = existingCount;
-    for (const file of files) {
-      const type = IMAGE_TYPES.has(file.type) ? "IMAGE" : VIDEO_TYPES.has(file.type) ? "VIDEO" : null;
-      if (!type) continue;
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const { key, url } = await uploadToR2(buffer, file.type, extensionFor(file.type));
+    for (const media of prepared) {
+      const { key, url } = await uploadToR2(media.buffer, media.contentType, media.extension);
       await prisma.media.create({
-        data: { workId, type, key, url, size: file.size, order: order++ },
+        data: { workId, type: media.type, key, url, size: media.size, order: order++ },
       });
     }
   }
