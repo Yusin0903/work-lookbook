@@ -10,9 +10,15 @@ interface WorkInput {
   title: string;
   description: string | null;
   published: boolean;
+  seriesId: string | null;
 }
 
-export function EditWorkForm({ work }: { work: WorkInput }) {
+interface SeriesOption {
+  id: string;
+  name: string;
+}
+
+export function EditWorkForm({ work, seriesList }: { work: WorkInput; seriesList: SeriesOption[] }) {
   const [state, formAction, pending] = useActionState<State, FormData>(
     async (_prevState, formData) => updateWork(work.id, formData),
     undefined
@@ -37,6 +43,27 @@ export function EditWorkForm({ work }: { work: WorkInput }) {
           rows={4}
           defaultValue={work.description ?? ""}
           className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">系列(選填)</label>
+        <select
+          name="seriesId"
+          defaultValue={work.seriesId ?? ""}
+          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+        >
+          <option value="">沒有系列</option>
+          {seriesList.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <input
+          name="newSeriesName"
+          type="text"
+          placeholder="或建立新系列(填了會優先使用)"
+          className="mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
         />
       </div>
       <label className="flex items-center gap-2 text-sm">

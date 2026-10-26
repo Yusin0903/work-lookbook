@@ -55,6 +55,20 @@ async function requireAdmin() {
   }
 }
 
+async function resolveSeriesId(formData: FormData): Promise<string | null> {
+  const newSeriesName = formData.get("newSeriesName")?.toString().trim();
+  if (newSeriesName) {
+    const maxOrder = await prisma.series.aggregate({ _max: { order: true } });
+    const series = await prisma.series.create({
+      data: { name: newSeriesName, order: (maxOrder._max.order ?? -1) + 1 },
+    });
+    return series.id;
+  }
+
+  const seriesId = formData.get("seriesId")?.toString();
+  return seriesId || null;
+}
+
 export async function createWork(formData: FormData) {
   await requireAdmin();
 
@@ -76,15 +90,16 @@ export async function createWork(formData: FormData) {
     return { error: limitError };
   }
 
+  const seriesId = await resolveSeriesId(formData);
   const work = await prisma.work.create({
-    data: { title, description },
+    data: { title, description, seriesId },
   });
 
-  let order = 0;
-  for (const media of prepared) {
+  for (let i = 0; i < prepared.length; i++) {
+    const media = prepared[i];
     const { key, url } = await uploadToR2(media.buffer, media.contentType, media.extension);
     await prisma.media.create({
-      data: { workId: work.id, type: media.type, key, url, size: media.size, order: order++ },
+      data: { workId: work.id, type: media.type, key, url, size: media.size, order: i, isCover: i === 0 },
     });
   }
 
@@ -103,9 +118,10 @@ export async function updateWork(workId: string, formData: FormData) {
     return { error: "請輸入標題" };
   }
 
+  const seriesId = await resolveSeriesId(formData);
   await prisma.work.update({
     where: { id: workId },
-    data: { title, description, published },
+    data: { title, description, published, seriesId },
   });
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
@@ -118,11 +134,20 @@ export async function updateWork(workId: string, formData: FormData) {
     }
 
     const existingCount = await prisma.media.count({ where: { workId } });
-    let order = existingCount;
-    for (const media of prepared) {
+    const hasExistingCover = (await prisma.media.count({ where: { workId, isCover: true } })) > 0;
+    for (let i = 0; i < prepared.length; i++) {
+      const media = prepared[i];
       const { key, url } = await uploadToR2(media.buffer, media.contentType, media.extension);
       await prisma.media.create({
-        data: { workId, type: media.type, key, url, size: media.size, order: order++ },
+        data: {
+          workId,
+          type: media.type,
+          key,
+          url,
+          size: media.size,
+          order: existingCount + i,
+          isCover: !hasExistingCover && i === 0,
+        },
       });
     }
   }
@@ -153,7 +178,76 @@ export async function deleteMedia(mediaId: string) {
   const media = await prisma.media.delete({ where: { id: mediaId } });
   await deleteFromR2(media.key).catch(() => {});
 
+  if (media.isCover) {
+    const next = await prisma.media.findFirst({
+      where: { workId: media.workId },
+      orderBy: { order: "asc" },
+    });
+    if (next) {
+      await prisma.media.update({ where: { id: next.id }, data: { isCover: true } });
+    }
+  }
+
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath(`/admin/${media.workId}/edit`);
+}
+
+export async function setCoverMedia(mediaId: string) {
+  await requireAdmin();
+
+  const media = await prisma.media.findUniqueOrThrow({ where: { id: mediaId } });
+  await prisma.$transaction([
+    prisma.media.updateMany({ where: { workId: media.workId }, data: { isCover: false } }),
+    prisma.media.update({ where: { id: mediaId }, data: { isCover: true } }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath(`/admin/${media.workId}/edit`);
+}
+
+export async function reorderWorks(orderedWorkIds: string[]) {
+  await requireAdmin();
+
+  await prisma.$transaction(
+    orderedWorkIds.map((id, index) => prisma.work.update({ where: { id }, data: { order: index } }))
+  );
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function createSeriesStandalone(name: string) {
+  await requireAdmin();
+
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const maxOrder = await prisma.series.aggregate({ _max: { order: true } });
+  await prisma.series.create({ data: { name: trimmed, order: (maxOrder._max.order ?? -1) + 1 } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function renameSeries(seriesId: string, name: string) {
+  await requireAdmin();
+
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  await prisma.series.update({ where: { id: seriesId }, data: { name: trimmed } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function deleteSeries(seriesId: string) {
+  await requireAdmin();
+
+  await prisma.series.delete({ where: { id: seriesId } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
 }

@@ -5,7 +5,12 @@ import { createWork } from "@/lib/actions";
 
 type State = { error?: string } | undefined;
 
-export function NewWorkForm() {
+interface SeriesOption {
+  id: string;
+  name: string;
+}
+
+export function NewWorkForm({ seriesList }: { seriesList: SeriesOption[] }) {
   const [state, formAction, pending] = useActionState<State, FormData>(
     async (_prevState, formData) => createWork(formData),
     undefined
@@ -31,6 +36,23 @@ export function NewWorkForm() {
         />
       </div>
       <div>
+        <label className="block text-sm font-medium mb-1">系列(選填)</label>
+        <select name="seriesId" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+          <option value="">沒有系列</option>
+          {seriesList.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <input
+          name="newSeriesName"
+          type="text"
+          placeholder="或建立新系列(填了會優先使用)"
+          className="mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
         <label className="block text-sm font-medium mb-1">照片 / 影片</label>
         <input
           name="media"
@@ -39,7 +61,9 @@ export function NewWorkForm() {
           accept="image/*,video/mp4,video/webm,video/quicktime"
           className="w-full text-sm"
         />
-        <p className="text-xs text-neutral-500 mt-1">可一次選擇多個檔案,支援 jpg/png/webp/gif 與 mp4/webm/mov。</p>
+        <p className="text-xs text-neutral-500 mt-1">
+          可一次選擇多個檔案,支援 jpg/png/webp/gif 與 mp4/webm/mov,第一張會自動設為首圖(之後可以在編輯頁面改)。
+        </p>
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button

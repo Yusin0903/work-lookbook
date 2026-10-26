@@ -7,17 +7,30 @@ datasource db {
   provider = "postgresql"
 }
 
+model Series {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  works     Work[]
+
+  @@index([order])
+}
+
 model Work {
   id          String   @id @default(cuid())
   title       String
   description String?
   published   Boolean  @default(true)
   order       Int      @default(0)
+  seriesId    String?
+  series      Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   media       Media[]
 
   @@index([published, order])
+  @@index([seriesId, order])
 }
 
 model Media {
@@ -28,6 +41,7 @@ model Media {
   key       String
   url       String
   size      Int      @default(0)
+  isCover   Boolean  @default(false)
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
