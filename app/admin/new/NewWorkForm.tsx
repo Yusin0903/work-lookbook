@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createWork } from "@/lib/actions";
+import { checkUploadSize, MAX_UPLOAD_MB } from "@/lib/upload-limits";
 
 type State = { error?: string } | undefined;
 
@@ -12,7 +13,12 @@ interface SeriesOption {
 
 export function NewWorkForm({ seriesList }: { seriesList: SeriesOption[] }) {
   const [state, formAction, pending] = useActionState<State, FormData>(
-    async (_prevState, formData) => createWork(formData),
+    async (_prevState, formData) => {
+      const files = formData.getAll("media").filter((f): f is File => f instanceof File);
+      const sizeError = checkUploadSize(files);
+      if (sizeError) return { error: sizeError };
+      return createWork(formData);
+    },
     undefined
   );
 
@@ -61,6 +67,7 @@ export function NewWorkForm({ seriesList }: { seriesList: SeriesOption[] }) {
           accept="image/*,video/mp4,video/webm,video/quicktime"
           className="w-full text-sm"
         />
+        <p className="text-xs text-neutral-500 mt-1">單次上傳檔案總大小上限 {MAX_UPLOAD_MB}MB。</p>
         <p className="text-xs text-neutral-500 mt-1">
           可一次選擇多個檔案,支援 jpg/png/webp/gif 與 mp4/webm/mov,第一張會自動設為首圖(之後可以在編輯頁面改)。
         </p>
