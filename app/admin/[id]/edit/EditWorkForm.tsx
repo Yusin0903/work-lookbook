@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateWork } from "@/lib/actions";
+import { checkUploadSize, MAX_UPLOAD_MB } from "@/lib/upload-limits";
 
 type State = { error?: string } | undefined;
 
@@ -20,7 +21,12 @@ interface SeriesOption {
 
 export function EditWorkForm({ work, seriesList }: { work: WorkInput; seriesList: SeriesOption[] }) {
   const [state, formAction, pending] = useActionState<State, FormData>(
-    async (_prevState, formData) => updateWork(work.id, formData),
+    async (_prevState, formData) => {
+      const files = formData.getAll("media").filter((f): f is File => f instanceof File);
+      const sizeError = checkUploadSize(files);
+      if (sizeError) return { error: sizeError };
+      return updateWork(work.id, formData);
+    },
     undefined
   );
 
@@ -79,6 +85,7 @@ export function EditWorkForm({ work, seriesList }: { work: WorkInput; seriesList
           accept="image/*,video/mp4,video/webm,video/quicktime"
           className="w-full text-sm"
         />
+        <p className="text-xs text-neutral-500 mt-1">單次上傳檔案總大小上限 {MAX_UPLOAD_MB}MB。</p>
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
