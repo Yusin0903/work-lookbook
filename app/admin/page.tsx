@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { logout } from "@/lib/actions";
 import { WorkList, type WorkGroup } from "./WorkList";
 import { SeriesManager } from "./SeriesManager";
+import { TagManager } from "./TagManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const [seriesList, works] = await Promise.all([
+  const [seriesList, tagList, works] = await Promise.all([
     prisma.series.findMany({ orderBy: { order: "asc" } }),
+    prisma.tag.findMany({ orderBy: { order: "asc" } }),
     prisma.work.findMany({
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       include: { media: { orderBy: { order: "asc" } } },
@@ -62,6 +64,7 @@ export default async function AdminPage() {
       </div>
 
       <SeriesManager series={seriesList} />
+      <TagManager tags={tagList} />
 
       <WorkList groups={groups} />
     </main>

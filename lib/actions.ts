@@ -69,6 +69,26 @@ async function resolveSeriesId(formData: FormData): Promise<string | null> {
   return seriesId || null;
 }
 
+async function resolveTagIds(formData: FormData): Promise<string[]> {
+  const ids = new Set(formData.getAll("tagIds").map((v) => v.toString()).filter(Boolean));
+
+  const names = (formData.get("newTagNames")?.toString() ?? "")
+    .split(/[,,、]/)
+    .map((n) => n.trim())
+    .filter(Boolean);
+  if (names.length > 0) {
+    const maxOrder = await prisma.tag.aggregate({ _max: { order: true } });
+    let nextOrder = (maxOrder._max.order ?? -1) + 1;
+    for (const name of names) {
+      const existing = await prisma.tag.findUnique({ where: { name } });
+      const tag = existing ?? (await prisma.tag.create({ data: { name, order: nextOrder++ } }));
+      ids.add(tag.id);
+    }
+  }
+
+  return [...ids];
+}
+
 export async function createWork(formData: FormData) {
   await requireAdmin();
 
@@ -91,8 +111,9 @@ export async function createWork(formData: FormData) {
   }
 
   const seriesId = await resolveSeriesId(formData);
+  const tagIds = await resolveTagIds(formData);
   const work = await prisma.work.create({
-    data: { title, description, seriesId },
+    data: { title, description, seriesId, tags: { connect: tagIds.map((id) => ({ id })) } },
   });
 
   for (let i = 0; i < prepared.length; i++) {
@@ -119,9 +140,10 @@ export async function updateWork(workId: string, formData: FormData) {
   }
 
   const seriesId = await resolveSeriesId(formData);
+  const tagIds = await resolveTagIds(formData);
   await prisma.work.update({
     where: { id: workId },
-    data: { title, description, published, seriesId },
+    data: { title, description, published, seriesId, tags: { set: tagIds.map((id) => ({ id })) } },
   });
 
   const files = formData.getAll("media").filter((f): f is File => f instanceof File && f.size > 0);
@@ -247,6 +269,44 @@ export async function deleteSeries(seriesId: string) {
   await requireAdmin();
 
   await prisma.series.delete({ where: { id: seriesId } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function createTagStandalone(name: string) {
+  await requireAdmin();
+
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const maxOrder = await prisma.tag.aggregate({ _max: { order: true } });
+  await prisma.tag.upsert({
+    where: { name: trimmed },
+    update: {},
+    create: { name: trimmed, order: (maxOrder._max.order ?? -1) + 1 },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function renameTag(tagId: string, name: string) {
+  await requireAdmin();
+
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  await prisma.tag.update({ where: { id: tagId }, data: { name: trimmed } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function deleteTag(tagId: string) {
+  await requireAdmin();
+
+  await prisma.tag.delete({ where: { id: tagId } });
 
   revalidatePath("/");
   revalidatePath("/admin");

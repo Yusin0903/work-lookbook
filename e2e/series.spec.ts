@@ -41,7 +41,7 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
     await loginAsAdmin(page);
     await createWork(page, WORK_A, SERIES_NAME);
 
-    await page.goto("/");
+    await page.goto("/?book=all");
     const heading = page.getByRole("heading", { name: SERIES_NAME });
     await expect(heading).toBeVisible();
 
@@ -58,7 +58,7 @@ test.describe.serial("series grouping, cover selection, and reordering", () => {
     await page.click('button[type="submit"]');
     await page.waitForURL("**/admin");
 
-    await page.goto("/");
+    await page.goto("/?book=all");
     const heading = page.getByRole("heading", { name: SERIES_NAME });
     const section = page.locator("section", { has: heading });
     await expect(section.getByRole("link", { name: WORK_A })).toBeVisible();

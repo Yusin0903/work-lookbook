@@ -21,7 +21,7 @@ export default async function WorkPage({
 
   return (
     <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 sm:py-16">
-      <Link href="/" className="text-sm text-muted hover:text-accent">
+      <Link href={`/?book=${work.seriesId ?? "all"}`} className="text-sm text-muted hover:text-accent">
         ← 回作品集
       </Link>
 
