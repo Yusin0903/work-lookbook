@@ -89,3 +89,105 @@ body {
     display: none;
   }
 }
+
+/* Magazine-style "book" shelf on the public homepage. */
+.book-track {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.book-track::-webkit-scrollbar {
+  display: none;
+}
+
+.book {
+  position: relative;
+  display: block;
+  width: 16rem;
+  height: 22rem;
+  perspective: 1400px;
+  cursor: pointer;
+  transition:
+    transform 0.9s cubic-bezier(0.6, 0, 0.2, 1),
+    opacity 0.6s ease;
+  filter: drop-shadow(0 18px 24px rgb(43 36 32 / 0.22));
+}
+.book[data-opening="true"] {
+  transform: scale(1.08);
+}
+.book[data-dimmed="true"] {
+  opacity: 0.25;
+}
+
+.book-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px 6px 6px 2px;
+  background: var(--surface);
+  box-shadow: inset 6px 0 10px rgb(43 36 32 / 0.12);
+}
+
+.book-cover {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.6, 0, 0.2, 1);
+}
+.book:hover .book-cover,
+.book:focus-visible .book-cover {
+  transform: rotateY(-16deg);
+}
+.book[data-opening="true"] .book-cover {
+  transform: rotateY(-165deg);
+}
+
+.book-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 2px 6px 6px 2px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.book-face--front {
+  background: var(--foreground);
+}
+.book-face--back {
+  transform: rotateY(180deg);
+  background: var(--background);
+  box-shadow: inset -6px 0 10px rgb(43 36 32 / 0.1);
+}
+
+.book-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 14px;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.35), rgb(255 255 255 / 0.12) 60%, transparent);
+}
+
+@keyframes book-page-in {
+  from {
+    opacity: 0;
+    transform: perspective(1400px) rotateY(-10deg) translateX(-12px);
+    transform-origin: left center;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.book-page-in {
+  animation: book-page-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book,
+  .book-cover {
+    transition: none;
+  }
+  .book-page-in {
+    animation: none;
+  }
+}

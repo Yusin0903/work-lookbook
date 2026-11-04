@@ -14,7 +14,7 @@ export function SeriesManager({ series }: { series: SeriesItem[] }) {
 
   return (
     <div className="mb-8">
-      <h2 className="text-sm font-medium text-neutral-500 mb-2">系列</h2>
+      <h2 className="text-sm font-medium text-neutral-500 mb-2">分類(主分類,例如 Living Objects)</h2>
       <div className="flex flex-wrap items-center gap-2">
         {series.map((s) => (
           <SeriesChip key={s.id} series={s} />

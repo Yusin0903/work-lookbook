@@ -20,9 +20,7 @@ test.describe.serial("admin manages a work end to end", () => {
   });
 
   test("published work and its cover image appear on the public homepage", async ({ page }) => {
-    await page.goto("/");
-    // The single published work doubles as the homepage's featured hero and
-    // appears in its grid section too, so there are two matching links.
+    await page.goto("/?book=all");
     const link = page.getByRole("link", { name: WORK_TITLE }).first();
     await expect(link).toBeVisible();
 
@@ -37,7 +35,7 @@ test.describe.serial("admin manages a work end to end", () => {
   });
 
   test("work detail page shows the description and media", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/?book=all");
     await page.getByRole("link", { name: WORK_TITLE }).first().click();
     await page.waitForURL("**/work/*");
 
@@ -60,7 +58,7 @@ test.describe.serial("admin manages a work end to end", () => {
 
     await expect(page.getByText("隱藏")).toBeVisible();
 
-    await page.goto("/");
+    await page.goto("/?book=all");
     await expect(page.getByText(WORK_TITLE)).toHaveCount(0);
 
     const directResponse = await page.goto(`/work/${workId}`);

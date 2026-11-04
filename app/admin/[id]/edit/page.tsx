@@ -12,12 +12,13 @@ export default async function EditWorkPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [work, seriesList] = await Promise.all([
+  const [work, seriesList, tagList] = await Promise.all([
     prisma.work.findUnique({
       where: { id },
-      include: { media: { orderBy: { order: "asc" } } },
+      include: { media: { orderBy: { order: "asc" } }, tags: true },
     }),
     prisma.series.findMany({ orderBy: { order: "asc" } }),
+    prisma.tag.findMany({ orderBy: { order: "asc" } }),
   ]);
 
   if (!work) {
@@ -27,7 +28,7 @@ export default async function EditWorkPage({
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight mb-8">編輯作品</h1>
-      <EditWorkForm work={work} seriesList={seriesList} />
+      <EditWorkForm work={work} seriesList={seriesList} tagList={tagList} />
 
       {work.media.length > 0 && (
         <div className="mt-10">
