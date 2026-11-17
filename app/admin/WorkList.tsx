@@ -119,7 +119,7 @@ function SortableWorkTile({ work }: { work: WorkItem }) {
         )}
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="font-serif text-base truncate">{work.title}</p>
+        <p className="text-base truncate">{work.title}</p>
         <div className="flex items-center gap-3 shrink-0">
           <Link href={`/admin/${work.id}/edit`} className="text-sm text-neutral-600 hover:underline">
             編輯

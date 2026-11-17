@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { type GalleryCover } from "@/app/_gallery/GalleryCard";
 import { BookShelf, type ShelfBook, type ShelfWork } from "@/app/_gallery/BookShelf";
+import { SiteHeader } from "@/app/_site/SiteHeader";
+import { SiteFooter } from "@/app/_site/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +28,9 @@ export default async function HomePage({
     }),
   ]);
 
-  const works: ShelfWork[] = rows.map((w) => ({
+  const works: ShelfWork[] = rows.map((w, i) => ({
     id: w.id,
+    no: i + 1,
     title: w.title,
     cover: resolveCover(w.media),
     seriesId: w.seriesId,
@@ -57,46 +60,46 @@ export default async function HomePage({
 
   return (
     <>
-      <div className="intro-curtain" aria-hidden="true">
-        <div className="intro-curtain-panel intro-curtain-panel--left" />
-        <div className="intro-curtain-panel intro-curtain-panel--right" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="font-serif italic text-4xl sm:text-5xl text-background">Lookbook</p>
-        </div>
-      </div>
-
-      <main className="flex-1 w-full">
-        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
-          <header className="mb-10 sm:mb-12 text-center">
-            <p className="text-xs font-medium tracking-[0.28em] text-accent mb-3">手工打磨 · 客製 3D 列印</p>
-            <h1 className="font-serif italic text-5xl sm:text-7xl tracking-tight text-foreground">Lookbook</h1>
-            <p className="mt-4 font-serif text-lg text-muted max-w-md mx-auto">
-              從螢幕上的模型,到手上的實體——紀錄每一件作品的材質與表情
-            </p>
-          </header>
-
-          {works.length === 0 ? (
-            <p className="text-muted text-center">目前還沒有作品。</p>
-          ) : (
-            <BookShelf
-              books={books}
-              works={works}
-              tags={tagList}
-              initialBookId={book ?? null}
-              initialTagId={tag ?? null}
-            />
-          )}
-        </div>
-
-        {works.length > 0 && (
-          <section className="bg-foreground px-6 py-20 sm:py-24">
-            <p className="max-w-2xl mx-auto text-center font-serif italic text-2xl sm:text-3xl leading-relaxed text-background">
-              從原型到成品,每一件 3D 列印作品都值得被好好看一眼
-              <span className="text-accent">,也值得被好好收藏。</span>
-            </p>
+      <SiteHeader />
+      <main id="top" className="flex-1 w-full">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
+          <section className="pt-10 sm:pt-16">
+            <h1 className="text-[clamp(4.5rem,17vw,16rem)] font-semibold leading-[0.82] tracking-[-0.045em]">
+              Lookbook
+            </h1>
+            <div className="mt-8 grid grid-cols-1 gap-6 border-t border-foreground pt-5 md:grid-cols-12">
+              <p className="md:col-span-3 font-mono text-xs uppercase leading-relaxed text-muted">
+                手工打磨 · 客製 3D 列印
+                <br />
+                Hand-finished printed objects
+              </p>
+              <p className="md:col-span-6 md:col-start-5 text-xl sm:text-2xl leading-snug tracking-tight text-pretty">
+                從螢幕上的模型,到手上的實體——紀錄每一件作品的材質與表情。
+              </p>
+              <p className="md:col-span-2 md:col-start-11 font-mono text-xs text-muted md:text-right">
+                {String(works.length).padStart(3, "0")} Objects
+                <br />
+                {String(books.length - 1).padStart(2, "0")} Collections
+              </p>
+            </div>
           </section>
-        )}
+
+          <section className="mt-20 sm:mt-28">
+            {works.length === 0 ? (
+              <p className="text-muted">目前還沒有作品。</p>
+            ) : (
+              <BookShelf
+                books={books}
+                works={works}
+                tags={tagList}
+                initialBookId={book ?? null}
+                initialTagId={tag ?? null}
+              />
+            )}
+          </section>
+        </div>
       </main>
+      <SiteFooter />
     </>
   );
 }
