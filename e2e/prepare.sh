@@ -8,12 +8,7 @@ set -euo pipefail
 rm -rf "$TEST_S3_DIR"
 mkdir -p "$TEST_S3_DIR"
 
-node_modules/.bin/s3rver \
-  --port "$TEST_S3_PORT" \
-  --address 0.0.0.0 \
-  --directory "$TEST_S3_DIR" \
-  --configure-bucket "$R2_BUCKET" \
-  --silent &
+node e2e/fake-s3.mjs "$TEST_S3_PORT" "$TEST_S3_DIR" "$R2_BUCKET" &
 
 for _ in $(seq 1 50); do
   curl -sf "http://localhost:${TEST_S3_PORT}/${R2_BUCKET}" >/dev/null 2>&1 && break

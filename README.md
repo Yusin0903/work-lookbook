@@ -41,7 +41,7 @@ R2 itself has no hard storage cap, only usage alerts, so the app enforces its ow
 
 ## Automated tests
 
-The project runs Playwright end-to-end tests (login, upload, publish/hide, delete) against a disposable test PostgreSQL, with a local S3-compatible stand-in (`s3rver`) standing in for R2:
+The project runs Playwright end-to-end tests (login, upload, publish/hide, delete) against a disposable test PostgreSQL, with a small local S3 stand-in (`e2e/fake-s3.mjs`) in place of R2:
 
 ```bash
 docker compose -f docker-compose.test.yml up -d   # start the dedicated test database (port 55433)
