@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f2ee;
-  --foreground: #141414;
-  --accent: #b3412a;
-  --muted: #76726b;
-  --divider: #d5d1c9;
-  --surface: #e7e4de;
+  --background: #ffffff;
+  --foreground: #111111;
+  --accent: #111111;
+  --muted: #737373;
+  --divider: #e5e5e5;
+  --surface: #f2f2f0;
 }
 
 @theme inline {
@@ -16,7 +16,7 @@
   --color-muted: var(--muted);
   --color-divider: var(--divider);
   --color-surface: var(--surface);
-  --font-sans: var(--font-inter-tight), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --font-sans: var(--font-inter), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -31,7 +31,7 @@ body {
   color: var(--background);
 }
 
-/* Catalogue-volume shelf on the public homepage. */
+/* Collection shelf on the public homepage; each collection opens like a book. */
 .shelf-track {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -59,7 +59,7 @@ body {
 .volume-book {
   position: relative;
   display: block;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 5;
   perspective: 1600px;
 }
 
@@ -68,9 +68,8 @@ body {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(90deg, transparent 0 3px, rgb(20 20 20 / 0.05) 3px 4px) right / 8px 100% no-repeat,
-    #fbfaf7;
-  outline: 1px solid var(--divider);
+    repeating-linear-gradient(90deg, transparent 0 3px, rgb(17 17 17 / 0.05) 3px 4px) right / 8px 100% no-repeat,
+    #fafafa;
 }
 
 .volume-cover {
@@ -100,8 +99,7 @@ body {
 }
 .volume-face--back {
   transform: rotateY(180deg);
-  background: #fbfaf7;
-  outline: 1px solid var(--divider);
+  background: #fafafa;
 }
 
 @keyframes page-in {

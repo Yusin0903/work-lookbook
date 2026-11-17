@@ -28,9 +28,8 @@ export default async function HomePage({
     }),
   ]);
 
-  const works: ShelfWork[] = rows.map((w, i) => ({
+  const works: ShelfWork[] = rows.map((w) => ({
     id: w.id,
-    no: i + 1,
     title: w.title,
     cover: resolveCover(w.media),
     seriesId: w.seriesId,
@@ -62,41 +61,29 @@ export default async function HomePage({
     <>
       <SiteHeader />
       <main id="top" className="flex-1 w-full">
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
-          <section className="pt-10 sm:pt-16">
-            <h1 className="text-[clamp(4.5rem,17vw,16rem)] font-semibold leading-[0.82] tracking-[-0.045em]">
-              Lookbook
-            </h1>
-            <div className="mt-8 grid grid-cols-1 gap-6 border-t border-foreground pt-5 md:grid-cols-12">
-              <p className="md:col-span-3 font-mono text-xs uppercase leading-relaxed text-muted">
-                手工打磨 · 客製 3D 列印
-                <br />
-                Hand-finished printed objects
-              </p>
-              <p className="md:col-span-6 md:col-start-5 text-xl sm:text-2xl leading-snug tracking-tight text-pretty">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
+          <section className="flex flex-col gap-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-16">
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">Lookbook</h1>
+              <p className="mt-3 max-w-md text-base text-muted text-pretty">
                 從螢幕上的模型,到手上的實體——紀錄每一件作品的材質與表情。
               </p>
-              <p className="md:col-span-2 md:col-start-11 font-mono text-xs text-muted md:text-right">
-                {String(works.length).padStart(3, "0")} Objects
-                <br />
-                {String(books.length - 1).padStart(2, "0")} Collections
-              </p>
             </div>
+            <p className="text-sm text-muted">手工打磨 · 客製 3D 列印</p>
           </section>
 
-          <section className="mt-20 sm:mt-28">
-            {works.length === 0 ? (
-              <p className="text-muted">目前還沒有作品。</p>
-            ) : (
-              <BookShelf
-                books={books}
-                works={works}
-                tags={tagList}
-                initialBookId={book ?? null}
-                initialTagId={tag ?? null}
-              />
-            )}
-          </section>
+          {works.length === 0 ? (
+            <p className="text-muted">目前還沒有作品。</p>
+          ) : (
+            <BookShelf
+              key={book ?? "shelf"}
+              books={books}
+              works={works}
+              tags={tagList}
+              initialBookId={book ?? null}
+              initialTagId={tag ?? null}
+            />
+          )}
         </div>
       </main>
       <SiteFooter />

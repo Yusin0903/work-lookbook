@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatObjectNo } from "@/app/_gallery/GalleryCard";
+import { GalleryCard, GalleryCaption, type GalleryCover } from "@/app/_gallery/GalleryCard";
 import { SiteHeader } from "@/app/_site/SiteHeader";
 import { SiteFooter } from "@/app/_site/SiteFooter";
 
 export const dynamic = "force-dynamic";
+
+const RELATED_COUNT = 4;
+
+function resolveCover(media: { url: string; type: string; isCover: boolean }[]): GalleryCover | null {
+  const cover = media.find((m) => m.isCover) ?? media[0];
+  return cover ? { url: cover.url, type: cover.type as "IMAGE" | "VIDEO" } : null;
+}
 
 export default async function WorkPage({
   params,
@@ -22,79 +29,89 @@ export default async function WorkPage({
     notFound();
   }
 
-  // Object numbers follow the public index order, so they match the homepage.
-  const index = await prisma.work.findMany({
-    where: { published: true },
+  const related = await prisma.work.findMany({
+    where: { published: true, seriesId: work.seriesId, id: { not: work.id } },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    select: { id: true, title: true, seriesId: true },
+    take: RELATED_COUNT,
+    include: { media: { orderBy: { order: "asc" } }, tags: { orderBy: { order: "asc" } } },
   });
-  const no = index.findIndex((w) => w.id === work.id) + 1;
-  const siblings = index.filter((w) => w.seriesId === work.seriesId);
-  const position = siblings.findIndex((w) => w.id === work.id);
-  const prev = position > 0 ? siblings[position - 1] : null;
-  const next = position < siblings.length - 1 ? siblings[position + 1] : null;
   const backHref = `/?book=${work.seriesId ?? "all"}`;
+  const [firstMedia, ...restMedia] = work.media;
 
   return (
     <>
       <SiteHeader />
       <main id="top" className="flex-1 w-full">
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
-          <nav className="flex items-center gap-2 border-b border-divider py-4 text-sm">
-            <Link href={backHref} className="hover:underline underline-offset-4">
-              ← {work.series?.name ?? "Index"}
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
+          <nav className="flex items-center gap-2 py-5 text-sm text-muted">
+            <Link href="/?book=all" className="hover:text-foreground">
+              All Works
             </Link>
+            {work.series && (
+              <>
+                <span>/</span>
+                <Link href={backHref} className="hover:text-foreground">
+                  {work.series.name}
+                </Link>
+              </>
+            )}
           </nav>
 
-          <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-12 lg:gap-16">
-            <div className="lg:col-span-7 space-y-4 sm:space-y-6">
-              {work.media.map((item) =>
-                item.type === "IMAGE" ? (
-                  <img key={item.id} src={item.url} alt={work.title} className="w-full bg-surface" />
-                ) : (
-                  <video key={item.id} src={item.url} controls className="w-full bg-surface" />
-                )
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
+            <div className="lg:col-span-8">
+              {firstMedia && <MediaTile item={firstMedia} title={work.title} />}
+              {restMedia.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  {restMedia.map((item) => (
+                    <MediaTile key={item.id} item={item} title={work.title} />
+                  ))}
+                </div>
               )}
             </div>
 
-            <aside className="lg:col-span-5">
+            <aside className="lg:col-span-4">
               <div className="lg:sticky lg:top-24">
-                <p className="font-mono text-xs uppercase text-muted">{formatObjectNo(no)}</p>
-                <h1 className="mt-3 text-4xl sm:text-6xl font-semibold leading-[0.95] tracking-[-0.035em]">
-                  {work.title}
-                </h1>
+                <h1 className="text-3xl font-semibold tracking-tight">{work.title}</h1>
+                {work.tags.length > 0 && (
+                  <p className="mt-2 text-sm text-muted">{work.tags.map((t) => t.name).join(", ")}</p>
+                )}
                 {work.description && (
-                  <p className="mt-8 max-w-md whitespace-pre-line text-base leading-relaxed">{work.description}</p>
+                  <p className="mt-6 whitespace-pre-line text-sm leading-relaxed">{work.description}</p>
                 )}
 
-                <dl className="mt-10 border-t border-foreground text-sm">
+                <dl className="mt-8 border-t border-divider text-sm">
                   <Detail label="Collection">{work.series?.name ?? "—"}</Detail>
                   <Detail label="Material / Finish">
                     {work.tags.length > 0 ? work.tags.map((t) => t.name).join(", ") : "—"}
                   </Detail>
                   <Detail label="Technique">3D 列印 · 手工打磨</Detail>
-                  <Detail label="Images">{String(work.media.length).padStart(2, "0")}</Detail>
                 </dl>
 
-                <div className="mt-10 grid grid-cols-2 gap-4 text-sm">
-                  {prev ? (
-                    <Link href={`/work/${prev.id}`} className="group block">
-                      <span className="font-mono text-[11px] uppercase text-muted">← Previous</span>
-                      <span className="mt-1 block truncate group-hover:underline underline-offset-4">{prev.title}</span>
-                    </Link>
-                  ) : (
-                    <span />
-                  )}
-                  {next && (
-                    <Link href={`/work/${next.id}`} className="group block text-right">
-                      <span className="font-mono text-[11px] uppercase text-muted">Next →</span>
-                      <span className="mt-1 block truncate group-hover:underline underline-offset-4">{next.title}</span>
-                    </Link>
-                  )}
-                </div>
+                <Link
+                  href={backHref}
+                  className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-foreground text-sm text-background transition-opacity hover:opacity-80"
+                >
+                  {work.series ? `More from ${work.series.name}` : "Back to all works"}
+                </Link>
               </div>
             </aside>
           </div>
+
+          {related.length > 0 && (
+            <section className="mt-24">
+              <h2 className="mb-5 text-xl font-medium tracking-tight">
+                {work.series ? `More from ${work.series.name}` : "More works"}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 sm:gap-x-5 gap-y-10">
+                {related.map((w) => (
+                  <Link key={w.id} href={`/work/${w.id}`} className="group block">
+                    <GalleryCard title={w.title} cover={resolveCover(w.media)} />
+                    <GalleryCaption title={w.title} meta={w.tags.map((t) => t.name).join(", ")} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </main>
       <SiteFooter />
@@ -102,11 +119,19 @@ export default async function WorkPage({
   );
 }
 
+function MediaTile({ item, title }: { item: { type: string; url: string }; title: string }) {
+  return item.type === "IMAGE" ? (
+    <img src={item.url} alt={title} className="w-full bg-surface" />
+  ) : (
+    <video src={item.url} controls className="w-full bg-surface" />
+  );
+}
+
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-4 border-b border-divider py-3">
-      <dt className="font-mono text-[11px] uppercase text-muted pt-0.5">{label}</dt>
-      <dd className="col-span-2">{children}</dd>
+    <div className="flex justify-between gap-6 border-b border-divider py-3.5">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right">{children}</dd>
     </div>
   );
 }

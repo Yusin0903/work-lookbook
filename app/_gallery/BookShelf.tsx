@@ -7,7 +7,6 @@ import { GallerySection } from "@/app/_gallery/GallerySection";
 
 export interface ShelfWork {
   id: string;
-  no: number;
   title: string;
   cover: GalleryCover | null;
   seriesId: string | null;
@@ -29,10 +28,6 @@ export interface ShelfTag {
 const ALL_BOOK_ID = "all";
 const OPEN_DELAY_MS = 900;
 
-function pad(n: number, width = 2) {
-  return String(n).padStart(width, "0");
-}
-
 export function BookShelf({
   books,
   works,
@@ -50,7 +45,6 @@ export function BookShelf({
   const [openId, setOpenId] = useState<string | null>(validInitial);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [tagId, setTagId] = useState<string | null>(validInitial ? initialTagId : null);
-  const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -66,7 +60,7 @@ export function BookShelf({
     window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
   }, [openId, tagId]);
 
-  // The hero sits above the shelf, so bring the opened (or closed) shelf into view.
+  // The intro sits above the shelf, so bring the opened (or closed) shelf into view.
   function scrollToShelf() {
     rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -93,65 +87,40 @@ export function BookShelf({
     scrollToShelf();
   }
 
-  function itemStride() {
+  function scrollShelf(direction: 1 | -1) {
     const track = trackRef.current;
     const first = track?.firstElementChild as HTMLElement | null;
-    if (!track || !first) return 0;
+    if (!track || !first) return;
     const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
-    return first.offsetWidth + gap;
-  }
-
-  function scrollShelf(direction: 1 | -1) {
-    trackRef.current?.scrollBy({ left: direction * itemStride(), behavior: "smooth" });
-  }
-
-  function handleScroll() {
-    const track = trackRef.current;
-    const stride = itemStride();
-    if (!track || !stride) return;
-    setActiveIndex(Math.min(books.length - 1, Math.round(track.scrollLeft / stride)));
+    track.scrollBy({ left: direction * (first.offsetWidth + gap), behavior: "smooth" });
   }
 
   const openBookData = books.find((b) => b.id === openId) ?? null;
 
   if (!openBookData) {
     return (
-      <div ref={rootRef} className="scroll-mt-20">
-        <div className="flex items-end justify-between border-t border-foreground pt-4">
+      <div ref={rootRef} className="scroll-mt-24">
+        <div className="flex items-end justify-between">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight">Collections</h2>
-            <p className="mt-1 font-mono text-xs text-muted">左右滑動瀏覽 · 點選圖錄打開</p>
+            <h2 className="text-xl font-medium tracking-tight">Collections</h2>
+            <p className="mt-1 text-sm text-muted">左右滑動瀏覽,點選系列打開</p>
           </div>
-          <div className="flex items-center gap-4 font-mono text-xs">
-            <span className="text-muted">
-              {pad(activeIndex + 1)} / {pad(books.length)}
-            </span>
-            <button
-              type="button"
-              onClick={() => scrollShelf(-1)}
-              className="h-9 w-9 border border-foreground hover:bg-foreground hover:text-background transition-colors"
-              aria-label="上一本"
-            >
+          <div className="hidden sm:flex gap-2">
+            <ArrowButton label="上一本" onClick={() => scrollShelf(-1)}>
               ←
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollShelf(1)}
-              className="h-9 w-9 border border-foreground hover:bg-foreground hover:text-background transition-colors"
-              aria-label="下一本"
-            >
+            </ArrowButton>
+            <ArrowButton label="下一本" onClick={() => scrollShelf(1)}>
               →
-            </button>
+            </ArrowButton>
           </div>
         </div>
 
         <div
           ref={trackRef}
-          onScroll={handleScroll}
-          className="shelf-track -mx-4 sm:-mx-8 mt-10 flex gap-6 sm:gap-10 overflow-x-auto snap-x snap-mandatory scroll-px-4 sm:scroll-px-8 px-4 sm:px-8 pb-4"
-          aria-label="作品圖錄"
+          className="shelf-track -mx-4 sm:-mx-8 mt-6 flex gap-3 sm:gap-5 overflow-x-auto snap-x snap-mandatory scroll-px-4 sm:scroll-px-8 px-4 sm:px-8 pb-2"
+          aria-label="作品系列"
         >
-          {books.map((book, i) => (
+          {books.map((book) => (
             <div key={book.id} className="snap-start shrink-0">
               <button
                 type="button"
@@ -174,12 +143,9 @@ export function BookShelf({
                     <span className="volume-face volume-face--back" />
                   </span>
                 </span>
-                <span className="mt-4 flex items-baseline justify-between font-mono text-[11px] uppercase text-muted">
-                  <span>Vol. {pad(i + 1)}</span>
-                  <span>{pad(book.count)} Objects</span>
-                </span>
-                <span className="mt-1 block text-xl font-medium tracking-tight underline-offset-4 decoration-1 group-hover:underline">
-                  {book.name}
+                <span className="mt-3 flex items-baseline gap-2 text-sm">
+                  <span className="font-medium">{book.name}</span>
+                  <span className="text-muted">{book.count}</span>
                 </span>
               </button>
             </div>
@@ -190,7 +156,6 @@ export function BookShelf({
   }
 
   const isAll = openBookData.id === ALL_BOOK_ID;
-  const volumeNo = books.findIndex((b) => b.id === openBookData.id) + 1;
   const inBook = works.filter((w) => isAll || w.seriesId === openBookData.id);
   const availableTags = tags.filter((t) => inBook.some((w) => w.tagIds.includes(t.id)));
   const visible = tagId ? inBook.filter((w) => w.tagIds.includes(tagId)) : inBook;
@@ -207,47 +172,42 @@ export function BookShelf({
     : [{ key: openBookData.id, label: null, works: visible }];
 
   return (
-    <div ref={rootRef} className="page-in scroll-mt-20">
-      <div className="flex items-center justify-between border-t border-foreground pt-4 text-sm">
-        <button type="button" onClick={closeBook} className="hover:underline underline-offset-4">
+    <div ref={rootRef} className="page-in scroll-mt-24">
+      <div className="flex items-center gap-2 text-sm text-muted">
+        <button type="button" onClick={closeBook} className="hover:text-foreground">
           ← Collections
         </button>
-        <span className="font-mono text-xs text-muted">Vol. {pad(volumeNo)}</span>
+        <span>/</span>
+        <span className="text-foreground">{openBookData.name}</span>
       </div>
 
-      <div className="mt-10 flex flex-wrap items-end justify-between gap-4">
-        <h2 className="text-[clamp(2.75rem,8vw,7rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
-          {openBookData.name}
-        </h2>
-        <p className="font-mono text-xs text-muted">{pad(inBook.length, 3)} Objects</p>
+      <div className="mt-6 flex items-baseline gap-3">
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">{openBookData.name}</h2>
+        <span className="text-sm text-muted">{inBook.length} works</span>
       </div>
 
       {availableTags.length > 0 && (
-        <div
-          className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y border-divider py-4"
-          aria-label="標籤篩選"
-        >
-          <span className="font-mono text-[11px] uppercase text-muted">Material / Finish</span>
-          <FilterButton active={tagId === null} onClick={() => setTagId(null)} count={inBook.length}>
+        <div className="mt-6 flex flex-wrap gap-2" aria-label="標籤篩選">
+          <FilterPill active={tagId === null} onClick={() => setTagId(null)} count={inBook.length}>
             All
-          </FilterButton>
+          </FilterPill>
           {availableTags.map((t) => (
-            <FilterButton
+            <FilterPill
               key={t.id}
               active={tagId === t.id}
               onClick={() => setTagId(t.id)}
               count={inBook.filter((w) => w.tagIds.includes(t.id)).length}
             >
               {t.name}
-            </FilterButton>
+            </FilterPill>
           ))}
         </div>
       )}
 
       {visible.length === 0 ? (
-        <p className="mt-16 text-muted">這個標籤下還沒有作品。</p>
+        <p className="mt-12 text-muted">這個標籤下還沒有作品。</p>
       ) : (
-        <div id="gallery" className="mt-12 sm:mt-16 space-y-20 sm:space-y-28">
+        <div id="gallery" className="mt-10 space-y-16">
           {sections.map((section) => (
             <GallerySection
               key={section.key}
@@ -258,9 +218,8 @@ export function BookShelf({
                 <Link key={work.id} href={`/work/${work.id}`} className="group block" data-work-id={work.id}>
                   <GalleryCard title={work.title} cover={work.cover} />
                   <GalleryCaption
-                    no={work.no}
                     title={work.title}
-                    meta={work.tagIds.map((id) => tagName.get(id)).filter(Boolean).join(" · ")}
+                    meta={work.tagIds.map((id) => tagName.get(id)).filter(Boolean).join(", ")}
                   />
                 </Link>
               ))}
@@ -272,7 +231,20 @@ export function BookShelf({
   );
 }
 
-function FilterButton({
+function ArrowButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="h-10 w-10 rounded-full bg-surface text-sm transition-colors hover:bg-foreground hover:text-background"
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilterPill({
   active,
   onClick,
   count,
@@ -288,14 +260,14 @@ function FilterButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`text-sm transition-colors underline-offset-[6px] decoration-1 ${
-        active ? "text-foreground underline" : "text-muted hover:text-foreground"
+      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+        active ? "bg-foreground text-background" : "bg-surface hover:bg-divider"
       }`}
     >
       {children}
-      <sup aria-hidden="true" className="ml-0.5 font-mono text-[10px]">
+      <span aria-hidden="true" className={`ml-1.5 ${active ? "text-background/60" : "text-muted"}`}>
         {count}
-      </sup>
+      </span>
     </button>
   );
 }
