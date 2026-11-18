@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { type GalleryCover } from "@/app/_gallery/GalleryCard";
 import { BookShelf, type ShelfBook, type ShelfWork } from "@/app/_gallery/BookShelf";
+import { SiteHeader } from "@/app/_site/SiteHeader";
+import { SiteFooter } from "@/app/_site/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
@@ -57,28 +59,24 @@ export default async function HomePage({
 
   return (
     <>
-      <div className="intro-curtain" aria-hidden="true">
-        <div className="intro-curtain-panel intro-curtain-panel--left" />
-        <div className="intro-curtain-panel intro-curtain-panel--right" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="font-serif italic text-4xl sm:text-5xl text-background">Lookbook</p>
-        </div>
-      </div>
-
-      <main className="flex-1 w-full">
-        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
-          <header className="mb-10 sm:mb-12 text-center">
-            <p className="text-xs font-medium tracking-[0.28em] text-accent mb-3">手工打磨 · 客製 3D 列印</p>
-            <h1 className="font-serif italic text-5xl sm:text-7xl tracking-tight text-foreground">Lookbook</h1>
-            <p className="mt-4 font-serif text-lg text-muted max-w-md mx-auto">
-              從螢幕上的模型,到手上的實體——紀錄每一件作品的材質與表情
-            </p>
-          </header>
+      <SiteHeader />
+      <main id="top" className="flex-1 w-full">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
+          <section className="flex flex-col gap-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-16">
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">Lookbook</h1>
+              <p className="mt-3 max-w-md text-base text-muted text-pretty">
+                從螢幕上的模型,到手上的實體——紀錄每一件作品的材質與表情。
+              </p>
+            </div>
+            <p className="text-sm text-muted">手工打磨 · 客製 3D 列印</p>
+          </section>
 
           {works.length === 0 ? (
-            <p className="text-muted text-center">目前還沒有作品。</p>
+            <p className="text-muted">目前還沒有作品。</p>
           ) : (
             <BookShelf
+              key={book ?? "shelf"}
               books={books}
               works={works}
               tags={tagList}
@@ -87,16 +85,8 @@ export default async function HomePage({
             />
           )}
         </div>
-
-        {works.length > 0 && (
-          <section className="bg-foreground px-6 py-20 sm:py-24">
-            <p className="max-w-2xl mx-auto text-center font-serif italic text-2xl sm:text-3xl leading-relaxed text-background">
-              從原型到成品,每一件 3D 列印作品都值得被好好看一眼
-              <span className="text-accent">,也值得被好好收藏。</span>
-            </p>
-          </section>
-        )}
       </main>
+      <SiteFooter />
     </>
   );
 }

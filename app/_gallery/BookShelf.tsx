@@ -46,6 +46,7 @@ export function BookShelf({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [tagId, setTagId] = useState<string | null>(validInitial ? initialTagId : null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -59,94 +60,96 @@ export function BookShelf({
     window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
   }, [openId, tagId]);
 
+  // The intro sits above the shelf, so bring the opened (or closed) shelf into view.
+  function scrollToShelf() {
+    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function openBook(id: string) {
     if (openingId) return;
     setTagId(null);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setOpenId(id);
+      scrollToShelf();
       return;
     }
     setOpeningId(id);
     timer.current = setTimeout(() => {
       setOpenId(id);
       setOpeningId(null);
+      scrollToShelf();
     }, OPEN_DELAY_MS);
   }
 
   function closeBook() {
     setOpenId(null);
     setTagId(null);
+    scrollToShelf();
   }
 
   function scrollShelf(direction: 1 | -1) {
     const track = trackRef.current;
-    if (!track) return;
-    track.scrollBy({ left: direction * 300, behavior: "smooth" });
+    const first = track?.firstElementChild as HTMLElement | null;
+    if (!track || !first) return;
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+    track.scrollBy({ left: direction * (first.offsetWidth + gap), behavior: "smooth" });
   }
 
   const openBookData = books.find((b) => b.id === openId) ?? null;
 
   if (!openBookData) {
     return (
-      <div className="relative">
-        <p className="text-center text-xs tracking-[0.28em] text-muted mb-6">左右滑動翻閱 · 點擊書本打開</p>
+      <div ref={rootRef} className="scroll-mt-24">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-medium tracking-tight">Collections</h2>
+            <p className="mt-1 text-sm text-muted">左右滑動瀏覽,點選系列打開</p>
+          </div>
+          <div className="hidden sm:flex gap-2">
+            <ArrowButton label="上一本" onClick={() => scrollShelf(-1)}>
+              ←
+            </ArrowButton>
+            <ArrowButton label="下一本" onClick={() => scrollShelf(1)}>
+              →
+            </ArrowButton>
+          </div>
+        </div>
+
         <div
           ref={trackRef}
-          className="book-track flex gap-8 sm:gap-12 overflow-x-auto snap-x snap-mandatory px-[max(1.5rem,calc(50%-8rem))] py-8"
-          aria-label="作品書架"
+          className="shelf-track -mx-4 sm:-mx-8 mt-6 flex gap-3 sm:gap-5 overflow-x-auto snap-x snap-mandatory scroll-px-4 sm:scroll-px-8 px-4 sm:px-8 pb-2"
+          aria-label="作品系列"
         >
           {books.map((book) => (
-            <div key={book.id} className="snap-center shrink-0">
+            <div key={book.id} className="snap-start shrink-0">
               <button
                 type="button"
                 onClick={() => openBook(book.id)}
                 data-opening={openingId === book.id}
                 data-dimmed={openingId !== null && openingId !== book.id}
-                className="book"
+                className="volume group"
                 aria-label={`打開 ${book.name}`}
               >
-                <span className="book-body" />
-                <span className="book-cover">
-                  <span className="book-face book-face--front">
-                    {book.cover?.type === "IMAGE" ? (
-                      <img src={book.cover.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                    ) : book.cover?.type === "VIDEO" ? (
-                      <video src={book.cover.url} muted className="absolute inset-0 h-full w-full object-cover" />
-                    ) : null}
-                    <span className="absolute inset-0 bg-gradient-to-t from-foreground/75 via-foreground/10 to-foreground/20" />
-                    <span className="book-spine" />
-                    <span className="absolute inset-x-0 bottom-0 p-6 text-left">
-                      <span className="block text-[10px] font-medium tracking-[0.3em] text-background/80 mb-2">
-                        {book.count} WORKS
-                      </span>
-                      <span className="block font-serif italic text-3xl leading-tight text-background">
-                        {book.name}
-                      </span>
+                <span className="volume-book">
+                  <span className="volume-pages" />
+                  <span className="volume-cover">
+                    <span className="volume-face volume-face--front">
+                      {book.cover?.type === "IMAGE" ? (
+                        <img src={book.cover.url} alt="" className="h-full w-full object-cover" />
+                      ) : book.cover?.type === "VIDEO" ? (
+                        <video src={book.cover.url} muted className="h-full w-full object-cover" />
+                      ) : null}
                     </span>
+                    <span className="volume-face volume-face--back" />
                   </span>
-                  <span className="book-face book-face--back" />
+                </span>
+                <span className="mt-3 flex items-baseline gap-2 text-sm">
+                  <span className="font-medium">{book.name}</span>
+                  <span className="text-muted">{book.count}</span>
                 </span>
               </button>
             </div>
           ))}
-        </div>
-        <div className="hidden sm:flex justify-center gap-6 mt-2">
-          <button
-            type="button"
-            onClick={() => scrollShelf(-1)}
-            className="text-sm tracking-widest text-muted hover:text-accent"
-            aria-label="上一本"
-          >
-            ← PREV
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollShelf(1)}
-            className="text-sm tracking-widest text-muted hover:text-accent"
-            aria-label="下一本"
-          >
-            NEXT →
-          </button>
         </div>
       </div>
     );
@@ -156,6 +159,7 @@ export function BookShelf({
   const inBook = works.filter((w) => isAll || w.seriesId === openBookData.id);
   const availableTags = tags.filter((t) => inBook.some((w) => w.tagIds.includes(t.id)));
   const visible = tagId ? inBook.filter((w) => w.tagIds.includes(tagId)) : inBook;
+  const tagName = new Map(tags.map((t) => [t.id, t.name]));
 
   type Section = { key: string; label: string | null; works: ShelfWork[] };
   const sections: Section[] = isAll
@@ -163,55 +167,60 @@ export function BookShelf({
         ...books
           .filter((b) => b.id !== ALL_BOOK_ID)
           .map((b): Section => ({ key: b.id, label: b.name, works: visible.filter((w) => w.seriesId === b.id) })),
-        { key: "none", label: null, works: visible.filter((w) => !w.seriesId) },
+        { key: "none", label: "Other Works", works: visible.filter((w) => !w.seriesId) },
       ].filter((section) => section.works.length > 0)
     : [{ key: openBookData.id, label: null, works: visible }];
 
   return (
-    <div className="book-page-in">
-      <div className="flex items-center justify-between mb-8">
-        <button
-          type="button"
-          onClick={closeBook}
-          className="text-sm tracking-widest text-muted hover:text-accent"
-        >
-          ← 回書架
+    <div ref={rootRef} className="page-in scroll-mt-24">
+      <div className="flex items-center gap-2 text-sm text-muted">
+        <button type="button" onClick={closeBook} className="hover:text-foreground">
+          ← Collections
         </button>
-        <p className="text-xs tracking-[0.28em] text-accent">{inBook.length} WORKS</p>
+        <span>/</span>
+        <span className="text-foreground">{openBookData.name}</span>
       </div>
 
-      <h2 className="font-serif italic text-4xl sm:text-5xl tracking-tight text-foreground text-center mb-8">
-        {openBookData.name}
-      </h2>
+      <div className="mt-6 flex items-baseline gap-3">
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">{openBookData.name}</h2>
+        <span className="text-sm text-muted">{inBook.length} works</span>
+      </div>
 
       {availableTags.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-2 mb-12" aria-label="標籤篩選">
-          <TagChip active={tagId === null} onClick={() => setTagId(null)}>
+        <div className="mt-6 flex flex-wrap gap-2" aria-label="標籤篩選">
+          <FilterPill active={tagId === null} onClick={() => setTagId(null)} count={inBook.length}>
             All
-          </TagChip>
+          </FilterPill>
           {availableTags.map((t) => (
-            <TagChip key={t.id} active={tagId === t.id} onClick={() => setTagId(t.id)}>
+            <FilterPill
+              key={t.id}
+              active={tagId === t.id}
+              onClick={() => setTagId(t.id)}
+              count={inBook.filter((w) => w.tagIds.includes(t.id)).length}
+            >
               {t.name}
-            </TagChip>
+            </FilterPill>
           ))}
         </div>
       )}
 
       {visible.length === 0 ? (
-        <p className="text-muted text-center">這個標籤下還沒有作品。</p>
+        <p className="mt-12 text-muted">這個標籤下還沒有作品。</p>
       ) : (
-        <div id="gallery" className="space-y-16 sm:space-y-20">
+        <div id="gallery" className="mt-10 space-y-16">
           {sections.map((section) => (
-            <GallerySection key={section.key} label={isAll ? section.label : null}>
+            <GallerySection
+              key={section.key}
+              label={isAll ? section.label : null}
+              count={isAll ? section.works.length : undefined}
+            >
               {section.works.map((work) => (
-                <Link
-                  key={work.id}
-                  href={`/work/${work.id}`}
-                  className="group block"
-                  data-work-id={work.id}
-                >
+                <Link key={work.id} href={`/work/${work.id}`} className="group block" data-work-id={work.id}>
                   <GalleryCard title={work.title} cover={work.cover} />
-                  <GalleryCaption title={work.title} />
+                  <GalleryCaption
+                    title={work.title}
+                    meta={work.tagIds.map((id) => tagName.get(id)).filter(Boolean).join(", ")}
+                  />
                 </Link>
               ))}
             </GallerySection>
@@ -222,13 +231,28 @@ export function BookShelf({
   );
 }
 
-function TagChip({
+function ArrowButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="h-10 w-10 rounded-full bg-surface text-sm transition-colors hover:bg-foreground hover:text-background"
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilterPill({
   active,
   onClick,
+  count,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  count: number;
   children: React.ReactNode;
 }) {
   return (
@@ -236,13 +260,14 @@ function TagChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-4 py-1.5 text-sm tracking-wide transition-colors ${
-        active
-          ? "border-foreground bg-foreground text-background"
-          : "border-divider text-muted hover:border-accent hover:text-accent"
+      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+        active ? "bg-foreground text-background" : "bg-surface hover:bg-divider"
       }`}
     >
       {children}
+      <span aria-hidden="true" className={`ml-1.5 ${active ? "text-background/60" : "text-muted"}`}>
+        {count}
+      </span>
     </button>
   );
 }
